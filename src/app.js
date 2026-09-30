@@ -484,7 +484,7 @@ async function refreshEngines() {
     for (const [key, info] of Object.entries(data)) {
       const label = descriptions[key] ? `${key}：${descriptions[key]}` : key;
       const download = info.download;
-      const downloadable = ["photo", "waifu", "rife", "rembg"].includes(key);
+      const downloadable = ["photo", "waifu", "rife", "rembg", "demucs"].includes(key);
       const downloading = download?.status === "downloading";
       const button = el("button", {
         class: `badge engine-action ${info.available ? "ok" : ""}`,

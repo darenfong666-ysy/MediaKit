@@ -1,6 +1,6 @@
 {
   "name": "mediakit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Local media enhancement workbench for images, video, cutout, and audio.",
   "private": true,
   "repository": {
@@ -34,6 +34,7 @@
       "README.md",
       "THIRD_PARTY_NOTICES.txt",
       "package.json"
+      ,"!node_modules/demucs/htdemucs.onnx"
     ],
     "asarUnpack": [
       "scripts/**/*"

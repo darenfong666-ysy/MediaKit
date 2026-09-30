@@ -18,6 +18,7 @@ const uploadsDir = path.join(dataRoot, "uploads");
 const audioPreviewDir = path.join(uploadsDir, ".audio-previews");
 const jobs = new Map();
 const engineDownloads = new Map();
+const demucsModelUrl = "https://unpkg.com/demucs@1.0.0/htdemucs.onnx";
 let imageModelQueue = Promise.resolve();
 const execFileAsync = promisify(execFile);
 function usesImageModelQueue(plan) {
@@ -485,6 +486,7 @@ function downloadScriptPath() {
 
 async function ensureEngineDownload(key) {
   const normalized = String(key || "").toLowerCase();
+  if (normalized === "demucs") return ensureDemucsModel();
   if (!["photo", "waifu", "rife", "rembg"].includes(normalized)) return;
   const existing = engineDownloads.get(normalized);
   if (existing?.promise) return existing.promise;
@@ -513,16 +515,58 @@ async function ensureEnginesForPayload(payload) {
   const model = String(payload.model || payload.upscaleModel || "").toLowerCase();
   const keys = new Set();
   if (mode === "cutout") keys.add("rembg");
+  if (mode === "audio-separate") await ensureDemucsModel();
   if (mode === "image-upscale" || mode === "video-upscale") keys.add(model.includes("waifu") ? "waifu" : "photo");
   if (mode === "video-upscale" && (payload.interpolate || payload.frameInterpolation)) keys.add("rife");
   for (const key of keys) await ensureEngineDownload(key);
+}
+
+async function ensureDemucsModel() {
+  const target = path.join(dataRoot, "engines", "demucs", "htdemucs.onnx");
+  if (await isFile(target)) return target;
+  const existing = engineDownloads.get("demucs");
+  if (existing?.promise) return existing.promise;
+  const state = { status: "downloading", progress: 0 };
+  const promise = (async () => {
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    const response = await fetch(demucsModelUrl);
+    if (!response.ok || !response.body) throw new Error(`Demucs 模型下载失败（HTTP ${response.status}）。`);
+    const total = Number(response.headers.get("content-length") || 0);
+    let done = 0;
+    const temp = `${target}.download`;
+    const out = await fs.open(temp, "w");
+    try {
+      for await (const chunk of response.body) {
+        await out.write(chunk);
+        done += chunk.length;
+        if (total) state.progress = Math.round(done / total * 100);
+      }
+    } finally {
+      await out.close();
+    }
+    await fs.rename(temp, target);
+    state.status = "ready";
+    state.progress = 100;
+    return target;
+  })().catch((error) => {
+    state.status = "failed";
+    state.error = error.message;
+    throw error;
+  });
+  state.promise = promise;
+  engineDownloads.set("demucs", state);
+  return promise;
 }
 
 async function engineStatus() {
   const entries = await Promise.all(
     Object.keys(engineCandidates).map(async (key) => {
       const value = await resolveEngine(key);
-      const usable = key === "ghostscript" ? await isGhostscriptUsable(value) : Boolean(value);
+      const usable = key === "ghostscript"
+        ? await isGhostscriptUsable(value)
+        : key === "demucs"
+          ? Boolean(value) && await isFile(path.join(dataRoot, "engines", "demucs", "htdemucs.onnx"))
+          : Boolean(value);
       return [key, usable ? value : null];
     })
   );
@@ -1366,7 +1410,9 @@ async function runAudioSeparate(plan, workDir, log, job) {
   ]);
 
   await log.appendFile("\n$ demucs-js htdemucs\n");
-  const weights = await fs.readFile(path.join(demucsRoot, "htdemucs.onnx"));
+  const downloadedWeights = path.join(dataRoot, "engines", "demucs", "htdemucs.onnx");
+  const weightsPath = await isFile(downloadedWeights) ? downloadedWeights : path.join(demucsRoot, "htdemucs.onnx");
+  const weights = await fs.readFile(weightsPath);
   const model = await ONNXHTDemucs.init(weights.buffer.slice(weights.byteOffset, weights.byteOffset + weights.byteLength));
   const audio = wavToSamples(new Uint8Array(await fs.readFile(wavInput)));
   const tracks = await separateTracks(model, audio, (step, total) => {
