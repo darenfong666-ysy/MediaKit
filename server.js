@@ -17,6 +17,7 @@ const logsDir = path.join(dataRoot, "logs");
 const uploadsDir = path.join(dataRoot, "uploads");
 const audioPreviewDir = path.join(uploadsDir, ".audio-previews");
 const jobs = new Map();
+const engineDownloads = new Map();
 let imageModelQueue = Promise.resolve();
 const execFileAsync = promisify(execFile);
 function usesImageModelQueue(plan) {
@@ -478,6 +479,45 @@ async function isGhostscriptUsable(executable) {
   }
 }
 
+function downloadScriptPath() {
+  return executablePath(path.join(root, "scripts", "prepare-engines.mjs"));
+}
+
+async function ensureEngineDownload(key) {
+  const normalized = String(key || "").toLowerCase();
+  if (!["photo", "waifu", "rife", "rembg"].includes(normalized)) return;
+  const existing = engineDownloads.get(normalized);
+  if (existing?.promise) return existing.promise;
+  const state = { status: "downloading", progress: 0 };
+  const promise = new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [downloadScriptPath()], {
+      windowsHide: true,
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: process.versions.electron ? "1" : process.env.ELECTRON_RUN_AS_NODE, KEPLER_ENGINE_ONLY: normalized, KEPLER_ENGINE_ROOT: path.join(dataRoot, "engines"), KEPLER_CACHE_DIR: path.join(dataRoot, ".engine-cache") }
+    });
+    child.stdout.on("data", (data) => {
+      const match = String(data).match(/(\d+)%/);
+      if (match) state.progress = Number(match[1]);
+    });
+    child.stderr.on("data", () => {});
+    child.on("error", reject);
+    child.on("exit", (code) => code === 0 ? resolve() : reject(new Error(`下载 ${normalized} 引擎失败（退出码 ${code}）。`)));
+  });
+  state.promise = promise;
+  engineDownloads.set(normalized, state);
+  promise.then(() => { state.status = "ready"; state.progress = 100; }).catch((error) => { state.status = "failed"; state.error = error.message; });
+  return promise;
+}
+
+async function ensureEnginesForPayload(payload) {
+  const mode = String(payload.mode || "");
+  const model = String(payload.model || payload.upscaleModel || "").toLowerCase();
+  const keys = new Set();
+  if (mode === "cutout") keys.add("rembg");
+  if (mode === "image-upscale" || mode === "video-upscale") keys.add(model.includes("waifu") ? "waifu" : "photo");
+  if (mode === "video-upscale" && (payload.interpolate || payload.frameInterpolation)) keys.add("rife");
+  for (const key of keys) await ensureEngineDownload(key);
+}
+
 async function engineStatus() {
   const entries = await Promise.all(
     Object.keys(engineCandidates).map(async (key) => {
@@ -486,7 +526,10 @@ async function engineStatus() {
       return [key, usable ? value : null];
     })
   );
-  const status = Object.fromEntries(entries.map(([key, value]) => [key, { available: Boolean(value), path: value }]));
+  const status = Object.fromEntries(entries.map(([key, value]) => {
+    const download = engineDownloads.get(key);
+    return [key, { available: Boolean(value), path: value, download: download ? { status: download.status, progress: download.progress, error: download.error || "" } : null }];
+  }));
   return status;
 }
 
@@ -1435,6 +1478,7 @@ async function startJob(payload) {
     };
   }
 
+  await ensureEnginesForPayload(payload);
   const plan = await planJob(payload);
   if (plan.pipeline) return startPipelineJob(plan);
 
@@ -1487,6 +1531,16 @@ async function route(req, res) {
 
   if (req.method === "GET" && url.pathname === "/api/engines") {
     return sendJson(res, 200, await engineStatus());
+  }
+
+  if (req.method === "POST" && url.pathname.startsWith("/api/engines/") && url.pathname.endsWith("/download")) {
+    const key = url.pathname.split("/")[3];
+    try {
+      await ensureEngineDownload(key);
+      return sendJson(res, 200, { status: "ready", key });
+    } catch (error) {
+      return sendJson(res, 500, { status: "failed", key, error: error.message });
+    }
   }
 
   if (req.method === "GET" && url.pathname === "/api/jobs") {

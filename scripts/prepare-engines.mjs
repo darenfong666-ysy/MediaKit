@@ -6,8 +6,9 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const cacheDir = path.join(root, ".engine-cache");
-const enginesDir = path.join(root, "engines");
+const cacheDir = process.env.KEPLER_CACHE_DIR || path.join(root, ".engine-cache");
+const enginesDir = process.env.KEPLER_ENGINE_ROOT || path.join(root, "engines");
+const only = String(process.env.KEPLER_ENGINE_ONLY || "").trim().toLowerCase();
 
 const packages = [
   {
@@ -165,7 +166,8 @@ async function download(pkg) {
 }
 
 async function downloadFile(file) {
-  const target = path.join(root, file.target);
+  const relative = file.target.replace(/^engines[\\/]/, "");
+  const target = path.join(enginesDir, relative);
   try {
     const stat = await fs.stat(target);
     if (stat.size > 1024) {
@@ -251,6 +253,17 @@ async function install(pkg) {
 }
 
 await fs.mkdir(enginesDir, { recursive: true });
-for (const pkg of packages) await install(pkg);
-for (const file of files) await downloadFile(file);
-console.log("all selected engines are ready");
+
+const packageKey = only === "photo" ? "realesrgan" : only === "waifu" ? "waifu2x" : only;
+const selectedPackages = packageKey ? packages.filter((pkg) => pkg.key === packageKey) : packages;
+const selectedFiles = only === "photo"
+  ? files.filter((file) => file.target.startsWith("engines/realesrgan/"))
+  : only === "rembg"
+    ? files.filter((file) => file.target.startsWith("engines/rembg/"))
+    : only
+      ? []
+      : files;
+
+for (const pkg of selectedPackages) await install(pkg);
+for (const file of selectedFiles) await downloadFile(file);
+console.log(only ? `${only} engine is ready` : "all selected engines are ready");

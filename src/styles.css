@@ -1687,6 +1687,26 @@ label:has(input:checked) .switch {
   line-height: 1;
 }
 
+.engine-row .engine-action {
+  min-width: 48px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: #39434d;
+  color: #dce4ea;
+  cursor: pointer;
+}
+
+.engine-row .engine-action:not(:disabled):hover {
+  background: #a9cfdf;
+  color: #11181e;
+}
+
+.engine-row .engine-action:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
 .toggle-control {
   height: 28px;
   display: inline-flex;

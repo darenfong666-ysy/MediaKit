@@ -3,12 +3,17 @@
   "version": "0.1.0",
   "description": "Local media enhancement workbench for images, video, cutout, and audio.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darenfong666-ysy/MediaKit.git"
+  },
   "type": "module",
   "main": "desktop-main.js",
   "scripts": {
     "start": "node server.js",
     "desktop": "electron .",
-    "dist": "electron-builder --win portable --x64",
+    "dist": "electron-builder --win nsis --x64",
+    "release": "electron-builder --win nsis --x64 --publish always",
     "prepare-engines": "node scripts/prepare-engines.mjs",
     "check": "node --check server.js"
   },
@@ -25,23 +30,32 @@
       "server.js",
       "assets/**/*",
       "src/**/*",
+      "scripts/**/*",
       "README.md",
       "THIRD_PARTY_NOTICES.txt",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "engines",
-        "to": "engines",
-        "filter": [
-          "**/*"
-        ]
-      }
+    "asarUnpack": [
+      "scripts/**/*"
     ],
     "win": {
       "icon": "assets/kepler.ico",
-      "target": "portable"
-    }
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "darenfong666-ysy",
+        "repo": "MediaKit",
+        "releaseType": "release"
+      }
+    ]
   },
   "engines": {
     "node": ">=20"
@@ -53,6 +67,7 @@
   "dependencies": {
     "@tugrul/rembg": "^1.0.3",
     "demucs": "^1.0.0",
+    "electron-updater": "^6.6.2",
     "ffmpeg-static": "^5.3.0",
     "ffprobe-static": "^3.1.0"
   },

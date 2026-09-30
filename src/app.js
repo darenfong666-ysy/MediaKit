@@ -483,9 +483,29 @@ async function refreshEngines() {
     box.innerHTML = "";
     for (const [key, info] of Object.entries(data)) {
       const label = descriptions[key] ? `${key}：${descriptions[key]}` : key;
+      const download = info.download;
+      const downloadable = ["photo", "waifu", "rife", "rembg"].includes(key);
+      const downloading = download?.status === "downloading";
+      const button = el("button", {
+        class: `badge engine-action ${info.available ? "ok" : ""}`,
+        text: info.available ? "可用" : downloading ? `下载 ${download.progress || 0}%` : download?.status === "failed" ? "重试" : downloadable ? "下载" : "系统"
+      });
+      button.disabled = info.available || downloading || !downloadable;
+      button.title = info.available ? "已就绪" : downloadable ? "下载此引擎及其基础文件" : "由系统或应用依赖提供";
+      if (downloadable && !info.available && !downloading) {
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          button.textContent = "下载中";
+          try {
+            await fetch(`/api/engines/${encodeURIComponent(key)}/download`, { method: "POST" });
+          } finally {
+            refreshEngines();
+          }
+        });
+      }
       box.append(el("div", { class: "engine-row" }, [
         el("span", { class: "engine-label", text: label, title: label }),
-        el("span", { class: `badge ${info.available ? "ok" : ""}`, text: info.available ? "可用" : "缺少" })
+        button
       ]));
     }
   } catch {

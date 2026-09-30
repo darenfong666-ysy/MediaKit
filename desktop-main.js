@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import { createServer as createNetServer } from "node:net";
+import { autoUpdater } from "electron-updater";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BUILD_ID = "2026-09-22.1";
@@ -117,6 +118,47 @@ function showStartupError(error) {
   );
 }
 
+function setupAutoUpdates() {
+  if (!app.isPackaged || !mainWindow) return;
+
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on("update-available", async (info) => {
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "MediaKit 有新版本",
+      message: `发现新版本 ${info.version}`,
+      detail: "是否现在下载更新？下载完成后可以重启安装。",
+      buttons: ["下载更新", "暂不更新"],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (result.response === 0) {
+      autoUpdater.downloadUpdate().catch(() => {});
+    }
+  });
+
+  autoUpdater.on("update-downloaded", async () => {
+    const result = await dialog.showMessageBox(mainWindow, {
+      type: "info",
+      title: "MediaKit 更新已下载",
+      message: "更新已经准备好。",
+      detail: "立即重启即可完成安装，也可以稍后手动重启。",
+      buttons: ["立即重启", "稍后"],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (result.response === 0) autoUpdater.quitAndInstall();
+  });
+
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => {});
+  }, 6000);
+}
+
 if (gotSingleInstanceLock) {
   app.on("second-instance", () => {
     revealWindow();
@@ -143,7 +185,10 @@ if (gotSingleInstanceLock) {
   app.whenReady().then(() => {
     createWindow();
     startLocalServer()
-      .then(() => mainWindow?.loadURL(`http://127.0.0.1:${port}`))
+      .then(() => {
+        mainWindow?.loadURL(`http://127.0.0.1:${port}`);
+        setupAutoUpdates();
+      })
       .catch((error) => showStartupError(error));
   });
 
