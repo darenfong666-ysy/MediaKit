@@ -3,9 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promises as fs } from "node:fs";
 import { createServer as createNetServer } from "node:net";
-import { autoUpdater } from "electron-updater";
+import updater from "electron-updater";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { autoUpdater } = updater;
 const BUILD_ID = "2026-09-22.1";
 let port = process.env.PORT || "";
 
