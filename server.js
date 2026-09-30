@@ -562,11 +562,12 @@ async function engineStatus() {
   const entries = await Promise.all(
     Object.keys(engineCandidates).map(async (key) => {
       const value = await resolveEngine(key);
-      const usable = key === "ghostscript"
-        ? await isGhostscriptUsable(value)
-        : key === "demucs"
-          ? Boolean(value) && await isFile(path.join(dataRoot, "engines", "demucs", "htdemucs.onnx"))
-          : Boolean(value);
+      let usable = Boolean(value);
+      if (key === "ghostscript") usable = await isGhostscriptUsable(value);
+      if (key === "demucs") usable = usable && await isFile(path.join(dataRoot, "engines", "demucs", "htdemucs.onnx"));
+      if (key === "rembg") {
+        usable = usable && Boolean(await cutoutModelPath("birefnet-lite") || await cutoutModelPath("u2netp"));
+      }
       return [key, usable ? value : null];
     })
   );
