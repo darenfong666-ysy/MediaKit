@@ -1,0 +1,29 @@
+kepler Third-Party Notices
+==========================
+
+kepler includes or can call third-party command-line media tools.
+
+ffmpeg-static / FFmpeg and ffprobe-static
+-----------------------------------------
+This project uses npm packages ffmpeg-static and ffprobe-static to provide FFmpeg and FFprobe binaries for local video and audio workflows.
+
+FFmpeg is a third-party project with its own license terms. Review the license details from the FFmpeg build and the ffmpeg-static package before redistributing modified builds or adding additional codecs.
+
+Project links:
+- https://ffmpeg.org/
+- https://www.npmjs.com/package/ffmpeg-static
+- https://www.npmjs.com/package/ffprobe-static
+
+AI Engines and Model Weights
+----------------------------
+The prepare-engines script downloads official or compatible public engine/model packages into the local engines directory:
+
+- waifu2x-ncnn-vulkan from nihui
+- Real-ESRGAN-ncnn-vulkan from xinntao
+- RIFE-ncnn-vulkan from nihui
+- Real-ESRGAN ncnn weights mirrored by edgetools and genie-design
+- rembg-compatible ONNX models published by danielgatis/rembg
+- Node ONNX background removal runtime from @tugrul/rembg
+- JavaScript/ONNX Demucs runtime and bundled HTDemucs weights from demucs-js
+
+Review each upstream license before redistributing this package outside local/private use.

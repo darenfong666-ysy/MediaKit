@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-viewer-size/
+.builder-cache/
+.npm-cache/
+logs/
+jobs/
+temp/
+debug_*.png
+$pdf
+uploads/
+work/
+.engine-cache/
+engines/*
+!engines/.gitkeep

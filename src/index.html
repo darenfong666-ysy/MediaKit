@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediaKit</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="mark" src="./kepler.png" alt="MediaKit">
+          <div>
+            <h1>MediaKit</h1>
+            <p>本地媒体增强工作台</p>
+          </div>
+        </div>
+        <nav id="nav"></nav>
+        <section class="engine-box">
+          <div class="box-title">引擎状态</div>
+          <div id="engineStatus" class="engine-list"></div>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <h2 id="panelTitle">图片放大</h2>
+            <p id="panelSubtitle">批量增强图片清晰度，支持动漫和照片两类路线。</p>
+          </div>
+          <div class="actions">
+            <button id="runBtn">开始处理</button>
+          </div>
+        </header>
+
+        <section class="content">
+          <div class="left-stack">
+            <form id="jobForm" class="form-panel"></form>
+            <section id="labPanel" class="lab-panel">
+              <div class="process-grid">
+                <section class="process-list-panel">
+                  <div class="image-list-head">
+                    <h3 id="sourceListTitle">原图列表</h3>
+                    <div id="imageListActions" class="image-list-actions">
+                      <span id="imageListCount">共 0 张</span>
+                      <button id="addImagesBtn" class="secondary" type="button">添加图片</button>
+                      <div id="imageToolbar" class="image-toolbar hidden">
+                        <button id="deselectImagesBtn" class="secondary" type="button">取消选择</button>
+                        <button id="downloadImagesBtn" class="secondary" type="button">批量下载</button>
+                        <button id="renameImagesBtn" class="secondary" type="button">批量改名</button>
+                        <button id="deleteImagesBtn" class="secondary" type="button">删除选中</button>
+                      </div>
+                      <button id="clearImagesBtn" class="ghost" type="button">清空</button>
+                    </div>
+                  </div>
+                  <div id="imageList" class="image-list" aria-label="素材列表"></div>
+                </section>
+                <section class="process-list-panel">
+                  <div class="image-list-head">
+                    <h3>处理后列表</h3>
+                    <div id="resultListActions" class="image-list-actions hidden">
+                      <span id="resultListCount">共 0 张</span>
+                      <button id="clearResultImagesBtn" class="ghost" type="button">清空</button>
+                    </div>
+                  </div>
+                  <div id="resultImageList" class="image-list result-list empty" aria-label="处理后列表"></div>
+                </section>
+              </div>
+              <div class="hidden-preview-cache">
+                <small id="sourceInfo">未选择</small>
+                <small id="resultInfo">等待处理</small>
+                <button id="openSourceBtn" type="button"><canvas id="sourceCanvas"></canvas></button>
+                <button id="openResultBtn" type="button"><canvas id="resultCanvas"></canvas></button>
+              </div>
+            </section>
+            <section id="mediaPanel" class="lab-panel hidden">
+              <div id="mediaPreview" class="media-preview"></div>
+              <div id="mediaMeta" class="media-meta"></div>
+            </section>
+            <section class="task-panel">
+              <div class="queue-head">
+                <h3>任务队列</h3>
+                <button id="clearLog" class="ghost" type="button">清空</button>
+              </div>
+              <div id="jobList" class="job-list"></div>
+              <div id="log" class="log"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+    <div id="imageViewer" class="image-viewer hidden" role="dialog" aria-modal="true" aria-label="图片对比查看器">
+      <div class="viewer-shell">
+        <div class="viewer-top">
+          <div>
+            <strong id="viewerTitle">图片对比</strong>
+            <span id="viewerMeta"></span>
+          </div>
+          <div class="viewer-controls">
+            <div class="segmented" role="group" aria-label="切换对比图片">
+              <button id="viewSourceBtn" type="button">原图</button>
+              <button id="viewResultBtn" type="button">处理后</button>
+            </div>
+            <button id="viewerDownloadBtn" type="button">下载</button>
+            <button id="viewerCloseBtn" class="secondary" type="button">关闭</button>
+          </div>
+        </div>
+        <div class="viewer-stage">
+          <button id="viewerPrevBtn" class="viewer-nav viewer-nav-prev" type="button" aria-label="上一张">‹</button>
+          <img id="viewerImage" alt="图片预览">
+          <video id="viewerVideo" class="hidden" controls></video>
+          <button id="viewerNextBtn" class="viewer-nav viewer-nav-next" type="button" aria-label="下一张">›</button>
+        </div>
+      </div>
+    </div>
+    <div id="renameDialog" class="modal hidden" role="dialog" aria-modal="true" aria-label="批量改名">
+      <div class="modal-card">
+        <h3>批量改名</h3>
+        <p>输入名称前缀，第一张使用原前缀，后续自动追加序号。</p>
+        <input id="renameInput" type="text">
+        <div class="modal-actions">
+          <button id="renameCancelBtn" class="secondary" type="button">取消</button>
+          <button id="renameConfirmBtn" type="button">确定</button>
+        </div>
+      </div>
+    </div>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
+
+
+
+
+
+
